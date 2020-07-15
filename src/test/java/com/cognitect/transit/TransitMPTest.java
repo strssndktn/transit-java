@@ -14,16 +14,6 @@
 
 package com.cognitect.transit;
 
-import com.cognitect.transit.impl.JsonParser;
-import com.cognitect.transit.impl.Tag;
-import com.cognitect.transit.impl.WriteCache;
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-import org.apache.commons.codec.binary.Base64;
-import org.msgpack.MessagePack;
-import org.msgpack.packer.Packer;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -32,7 +22,28 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import org.apache.commons.codec.binary.Base64;
+import org.msgpack.core.MessageBufferPacker;
+import org.msgpack.core.MessagePack;
+
+import com.cognitect.transit.impl.JsonParser;
+import com.cognitect.transit.impl.Tag;
+import com.cognitect.transit.impl.WriteCache;
+
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
 
 public class TransitMPTest extends TestCase {
 
@@ -46,18 +57,72 @@ public class TransitMPTest extends TestCase {
 
     // Reading
 
-    public Reader readerOf(Object... things) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        MessagePack msgpack = new MessagePack();
-        Packer packer = msgpack.createPacker(out);
+    private void serialize(MessageBufferPacker packer, Object o) throws IOException {
+        if (o == null) {
+            packer.packNil();
+        } else if (o instanceof String) {
+            packer.packString((String) o);
+        } else if (o instanceof Long) {
+            packer.packLong((long) o);
+        } else if (o instanceof Integer) {
+            packer.packInt((int) o);
+        } else if (o instanceof Boolean) {
+            packer.packBoolean((boolean) o);
+        } else if (o instanceof Float) {
+            packer.packFloat((float) o);
+        } else if (o instanceof Double) {
+            packer.packDouble((double) o);
+        } else if (o instanceof Map) {
+            Map m = (Map) o;
+            packer.packMapHeader(m.size());
+            Iterator iterator = m.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry e = (Map.Entry) iterator.next();
+                serialize(packer, e.getKey());
+                serialize(packer, e.getValue());
+            }
+        } else if (o instanceof List) {
+            List l = (List) o;
+            packer.packArrayHeader(l.size());
+            Iterator iterator = l.iterator();
+            while (iterator.hasNext()) {
+                serialize(packer, iterator.next());
+            }
+        } else if (o instanceof Object[]) {
+            Object[] a = (Object[]) o;
+            packer.packArrayHeader(a.length);
+            for (Object a_ : a) {
+                serialize(packer, a_);
+            }
+        } else if (o instanceof int[]) {
+            int[] a = (int[]) o;
+            packer.packArrayHeader(a.length);
+            for (int i : a) {
+                packer.packInt(i);
+            }
+        } else if (o instanceof long[]) {
+            long[] a = (long[]) o;
+            packer.packArrayHeader(a.length);
+            for (long l : a) {
+                packer.packLong(l);
+            }
+        } else {
+            throw new RuntimeException("missing pack type match" + o.getClass().toString());
+        }
+    }
 
-        for (Object o : things) {
-            packer.write(o);
+    public Reader readerOf(Object... things) throws IOException {
+        MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
+        try {
+            for (Object o : things) {
+                serialize(packer, o);
+            }
+        } finally {
+            packer.close();
         }
 
-        InputStream in = new ByteArrayInputStream(out.toByteArray());
+        InputStream in = new ByteArrayInputStream(packer.toByteArray());
         return TransitFactory.reader(TransitFactory.Format.MSGPACK, in);
-
     }
 
     public void testReadString() throws IOException {

@@ -3,17 +3,17 @@
 
 package com.cognitect.transit.impl;
 
-import com.cognitect.transit.WriteHandler;
-import com.cognitect.transit.Writer;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import org.msgpack.MessagePack;
-import org.msgpack.packer.Packer;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.function.Function;
+
+import org.msgpack.core.MessagePacker;
+
+import com.cognitect.transit.WriteHandler;
+import com.cognitect.transit.Writer;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 
 public class WriterFactory {
 
@@ -74,7 +74,7 @@ public class WriterFactory {
 
     public static <T> Writer<T> getMsgpackInstance(final OutputStream out, Map<Class, WriteHandler<?,?>> customHandlers, WriteHandler<?, ?> defaultWriteHandler, Function<Object,Object> transform) throws IOException {
 
-        Packer packer = new MessagePack().createPacker(out);
+        MessagePacker packer = org.msgpack.core.MessagePack.newDefaultPacker(out);
 
         final MsgpackEmitter emitter = new MsgpackEmitter(packer, handlerMap(customHandlers), defaultWriteHandler, transform);
 

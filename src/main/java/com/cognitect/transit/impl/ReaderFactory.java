@@ -3,15 +3,22 @@
 
 package com.cognitect.transit.impl;
 
-import com.cognitect.transit.*;
-import com.cognitect.transit.SPI.ReaderSPI;
-import com.fasterxml.jackson.core.JsonFactory;
-import org.msgpack.MessagePack;
-
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.msgpack.core.MessagePack;
+
+import com.cognitect.transit.ArrayReader;
+import com.cognitect.transit.DefaultReadHandler;
+import com.cognitect.transit.MapReader;
+import com.cognitect.transit.ReadHandler;
+import com.cognitect.transit.Reader;
+import com.cognitect.transit.TaggedValue;
+import com.cognitect.transit.TransitFactory;
+import com.cognitect.transit.SPI.ReaderSPI;
+import com.fasterxml.jackson.core.JsonFactory;
 
 public class ReaderFactory {
 
@@ -164,8 +171,7 @@ public class ReaderFactory {
 
         @Override
         protected AbstractParser createParser() {
-            MessagePack mp = new MessagePack();
-            return new MsgpackParser(mp.createUnpacker(in), handlers, defaultHandler,
+            return new MsgpackParser(MessagePack.newDefaultUnpacker(in), handlers, defaultHandler,
                     mapBuilder, listBuilder);
         }
     }
